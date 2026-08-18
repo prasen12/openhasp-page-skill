@@ -24,7 +24,7 @@ their track) that only show up after you flash the panel.
 ### As a plugin (recommended — installs and updates by git)
 
 ```
-/plugin marketplace add <your-git-url>/openhasp-page-skill
+/plugin marketplace add prasen12/openhasp-page-skill
 /plugin install openhasp-page
 ```
 
@@ -32,7 +32,7 @@ their track) that only show up after you flash the panel.
 
 ### As a plain skill (zip)
 
-Unzip `dist/openhasp-page-skill-1.0.0.zip` into either:
+Unzip `dist/openhasp-page-skill-1.0.1.zip` into either:
 
 - `~/.claude/skills/` — available in every project, or
 - `<your-project>/.claude/skills/` — checked in with the project, shared with your team
