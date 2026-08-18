@@ -1,0 +1,13 @@
+{
+  "name": "openhasp-page-skill",
+  "owner": {
+    "name": "Prasen Palvankar"
+  },
+  "plugins": [
+    {
+      "name": "openhasp-page",
+      "source": "./",
+      "description": "Generate and edit openHASP *.hasp.json design files for the openHASP VS Code Page Editor, with Home Assistant bindings and a design validator."
+    }
+  ]
+}

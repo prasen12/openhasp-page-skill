@@ -1,0 +1,19 @@
+{
+  "name": "openhasp-page",
+  "version": "1.0.0",
+  "description": "Generate and edit openHASP *.hasp.json design files for the openHASP VS Code Page Editor — room/light/climate control panels, Home Assistant entity bindings, MDI icons — with a stdlib-only validator for geometry, IDs, and binding shape.",
+  "author": {
+    "name": "Prasen Palvankar"
+  },
+  "keywords": [
+    "openhasp",
+    "homeassistant",
+    "home-automation",
+    "lvgl",
+    "vscode",
+    "hasp",
+    "smart-home",
+    "touch-panel"
+  ],
+  "license": "MIT"
+}
