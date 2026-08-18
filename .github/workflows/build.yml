@@ -1,0 +1,115 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Check JSON manifests parse
+        run: |
+          for f in .claude-plugin/plugin.json .claude-plugin/marketplace.json; do
+            python3 -m json.tool "$f" > /dev/null && echo "ok: $f"
+          done
+
+      - name: Check SKILL.md frontmatter
+        run: |
+          python3 - <<'PY'
+          import re, sys, pathlib
+          text = pathlib.Path('skills/openhasp-page/SKILL.md').read_text()
+          m = re.match(r'^---\n(.*?)\n---\n', text, re.S)
+          if not m:
+              sys.exit('SKILL.md is missing YAML frontmatter')
+          for key in ('name:', 'description:'):
+              if not re.search(rf'^{key}', m.group(1), re.M):
+                  sys.exit(f'SKILL.md frontmatter is missing "{key}"')
+          print('ok: SKILL.md frontmatter')
+          PY
+
+      - name: Compile validator
+        run: python3 -m py_compile skills/openhasp-page/validate.py
+
+      - name: Smoke-test validator
+        run: |
+          cat > /tmp/good.hasp.json <<'JSON'
+          {
+            "deviceProperties": {"width": 480, "height": 320},
+            "layout": [
+              {"id": 1, "widgets": [
+                {"id": 10, "obj": "label", "x": 10, "y": 10, "w": 200, "h": 30, "text": "Living Room"},
+                {"id": 20, "obj": "btn", "x": 10, "y": 60, "w": 120, "h": 60, "text": "On"}
+              ]}
+            ]
+          }
+          JSON
+          # Same page, same widget id twice — must be reported as an error.
+          cat > /tmp/bad.hasp.json <<'JSON'
+          {
+            "deviceProperties": {"width": 480, "height": 320},
+            "layout": [
+              {"id": 1, "widgets": [
+                {"id": 10, "obj": "label", "x": 10, "y": 10, "w": 200, "h": 30, "text": "A"},
+                {"id": 10, "obj": "btn", "x": 10, "y": 60, "w": 120, "h": 60, "text": "B"}
+              ]}
+            ]
+          }
+          JSON
+          python3 skills/openhasp-page/validate.py /tmp/good.hasp.json
+          if python3 skills/openhasp-page/validate.py /tmp/bad.hasp.json; then
+            echo "validator accepted a design with duplicate widget ids" >&2
+            exit 1
+          fi
+          echo "ok: validator passes valid designs and rejects duplicate ids"
+
+      - name: Version matches tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          VERSION=$(python3 -c 'import json;print(json.load(open(".claude-plugin/plugin.json"))["version"])')
+          TAG="${GITHUB_REF_NAME#v}"
+          if [ "$VERSION" != "$TAG" ]; then
+            echo "plugin.json version ($VERSION) does not match tag ($TAG)" >&2
+            exit 1
+          fi
+          echo "ok: version $VERSION matches tag"
+
+      - name: Build
+        run: ./build.sh
+
+      - name: Upload zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: openhasp-page-skill
+          path: dist/*.zip
+          if-no-files-found: error
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: openhasp-page-skill
+          path: dist
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.zip
+          generate_release_notes: true
